@@ -1,28 +1,37 @@
 package com.rafaeltmbr.todo.user;
 
+import com.rafaeltmbr.todo.shared.AppError;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.List;
 
 @RestController
 @RequestMapping("/user")
 public class UserController {
-    private final ArrayList<UserModel> users = new ArrayList<>();
-    private final HashSet<String> usernames = new HashSet<>();
+    @Autowired
+    private IUserRepository repository;
 
     @GetMapping
-    public ArrayList<UserModel> list() {
-        return users;
+    public List<UserModel> list() {
+        return repository.findAll();
     }
 
     @PostMapping
-    public UserModel create(@RequestBody UserModel userModel) {
-        if (usernames.contains(userModel.getName())) throw new IllegalArgumentException("Username already exists.");
+    public ResponseEntity create(@RequestBody UserModel userModel) {
+        var user = repository.findByUsername(userModel.getUsername());
+        if (user != null) {
+            var error = AppError.builder()
+                    .status(HttpStatus.FORBIDDEN.value())
+                    .message("Username already exists.")
+                    .build();
 
-        users.add(userModel);
-        usernames.add(userModel.getName());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+        }
 
-        return userModel;
+        var newUser = repository.save(userModel);
+        return ResponseEntity.ok(newUser);
     }
 }
