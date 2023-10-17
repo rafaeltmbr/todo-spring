@@ -1,5 +1,6 @@
 package com.rafaeltmbr.todo.task;
 
+import com.rafaeltmbr.todo.error.AppError;
 import com.rafaeltmbr.todo.shared.Config;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,4 +30,17 @@ public class TaskModel {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    public void setTitle(String title) throws AppError {
+        if (title == null) throw new AppError("Title is required");
+
+        title = title.trim();
+        if (title.isEmpty()) throw new AppError("Title must not be empty.");
+
+        if (title.length() > Config.taskTitleMaximumLength) {
+            throw new AppError("Title must be at most 50 characters long.");
+        }
+
+        this.title = title;
+    }
 }

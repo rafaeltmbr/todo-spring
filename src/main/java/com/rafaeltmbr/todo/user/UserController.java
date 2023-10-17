@@ -1,8 +1,8 @@
 package com.rafaeltmbr.todo.user;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
+import com.rafaeltmbr.todo.error.AppError;
 import com.rafaeltmbr.todo.shared.Config;
-import com.rafaeltmbr.todo.shared.ResponseError;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +22,9 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity create(@RequestBody UserModel userModel) {
+    public ResponseEntity create(@RequestBody UserModel userModel) throws AppError {
         var foundUser = repository.findByUsername(userModel.getUsername());
-        if (foundUser != null) {
-            return ResponseError.makeResponse(HttpStatus.FORBIDDEN, "Username already exists.");
-        }
+        if (foundUser != null) throw new AppError(HttpStatus.FORBIDDEN, "Username already exists.");
 
         var passwordHash = BCrypt
                 .withDefaults()

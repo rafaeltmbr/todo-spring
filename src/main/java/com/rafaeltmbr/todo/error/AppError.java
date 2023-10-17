@@ -1,4 +1,4 @@
-package com.rafaeltmbr.todo.shared;
+package com.rafaeltmbr.todo.error;
 
 
 import lombok.Data;

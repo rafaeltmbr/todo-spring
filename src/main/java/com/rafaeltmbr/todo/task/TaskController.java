@@ -1,10 +1,8 @@
 package com.rafaeltmbr.todo.task;
 
 
-import com.rafaeltmbr.todo.shared.AppError;
-import com.rafaeltmbr.todo.shared.Config;
+import com.rafaeltmbr.todo.error.AppError;
 import com.rafaeltmbr.todo.shared.Merge;
-import com.rafaeltmbr.todo.shared.ResponseError;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,41 +34,55 @@ public class TaskController {
      */
 
     @PostMapping
-    public ResponseEntity create(@RequestBody TaskModel taskModel, HttpServletRequest request) {
-        try {
-            var userId = (UUID) request.getAttribute("userId");
-            validateTitle(taskModel.getTitle(), userId, null);
-            validateDates(taskModel);
+    public ResponseEntity create(
+            @RequestBody TaskModel taskModel,
+            HttpServletRequest request
+    ) throws AppError {
+        var userId = (UUID) request.getAttribute("userId");
+        validateTitle(taskModel.getTitle(), userId, null);
+        validateDates(taskModel);
 
-            taskModel.setUserId(userId);
-            taskModel.setTitle(taskModel.getTitle().trim());
+        taskModel.setUserId(userId);
+        taskModel.setTitle(taskModel.getTitle().trim());
 
-            return ResponseEntity.ok(taskRepository.save(taskModel));
-        } catch (AppError error) {
-            return ResponseError.makeResponse(error);
-        }
+        return ResponseEntity.ok(taskRepository.save(taskModel));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity update(@RequestBody TaskModel taskModel, ServletRequest request, @PathVariable UUID id) {
-        try {
-            var foundTask = taskRepository.findById(id).orElse(null);
-            var userId = (UUID) request.getAttribute("userId");
-            if (foundTask == null || !foundTask.getUserId().equals(userId)) {
-                throw new AppError(HttpStatus.FORBIDDEN, "Task not found");
-            }
-
-            var propertiesToIgnore = new String[]{"id", "userId", "createdAt"};
-            Merge.mergeNonNullProperties(taskModel, foundTask, propertiesToIgnore);
-            foundTask.setTitle(foundTask.getTitle().trim());
-
-            validateTitle(foundTask.getTitle(), foundTask.getUserId(), id);
-            validateDates(foundTask);
-
-            return ResponseEntity.ok(taskRepository.save(foundTask));
-        } catch (AppError error) {
-            return ResponseError.makeResponse(error);
+    public ResponseEntity update(
+            @RequestBody TaskModel taskModel,
+            ServletRequest request,
+            @PathVariable UUID id
+    ) throws AppError {
+        var foundTask = taskRepository.findById(id).orElse(null);
+        var userId = (UUID) request.getAttribute("userId");
+        if (foundTask == null || !foundTask.getUserId().equals(userId)) {
+            throw new AppError(HttpStatus.FORBIDDEN, "Task not found");
         }
+
+        var propertiesToIgnore = new String[]{"id", "userId", "createdAt"};
+        Merge.mergeNonNullProperties(taskModel, foundTask, propertiesToIgnore);
+        foundTask.setTitle(foundTask.getTitle().trim());
+
+        validateTitle(foundTask.getTitle(), foundTask.getUserId(), id);
+        validateDates(foundTask);
+
+        return ResponseEntity.ok(taskRepository.save(foundTask));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity delete(
+            ServletRequest request,
+            @PathVariable UUID id
+    ) throws AppError {
+        var foundTask = taskRepository.findById(id).orElse(null);
+        var userId = (UUID) request.getAttribute("userId");
+        if (foundTask == null || !foundTask.getUserId().equals(userId)) {
+            throw new AppError(HttpStatus.FORBIDDEN, "Task not found");
+        }
+
+        taskRepository.delete(foundTask);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(null);
     }
 
 
@@ -83,15 +95,6 @@ public class TaskController {
      * @throws AppError indicating the error if it exists.
      */
     private void validateTitle(String title, UUID userId, UUID skidTaskId) throws AppError {
-        if (title == null) throw new AppError("Title is required");
-
-        title = title.trim();
-        if (title.isEmpty()) throw new AppError("Title must not be empty.");
-
-        if (title.length() > Config.taskTitleMaximumLength) {
-            throw new AppError("Title must be at most 50 characters long.");
-        }
-
         var foundTasksWithSameTitle = taskRepository.findByTitle(title);
         if (foundTasksWithSameTitle == null) return;
 
