@@ -1,5 +1,6 @@
 package com.rafaeltmbr.todo.task;
 
+import com.rafaeltmbr.todo.shared.Config;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -19,7 +20,7 @@ public class TaskModel {
     private UUID id;
     private UUID userId;
 
-    @Column(unique = true, length = 50)
+    @Column(length = Config.taskTitleMaximumLength)
     private String title;
     private String description;
     private LocalDateTime startAt;
