@@ -22,7 +22,7 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity create(@RequestBody UserModel userModel) throws AppError {
+    public ResponseEntity<UserModel> create(@RequestBody UserModel userModel) throws AppError {
         var foundUser = repository.findByUsername(userModel.getUsername());
         if (foundUser != null) throw new AppError(HttpStatus.FORBIDDEN, "Username already exists.");
 
@@ -32,7 +32,6 @@ public class UserController {
 
         userModel.setPassword(passwordHash);
 
-        var createdUser = repository.save(userModel);
-        return ResponseEntity.ok(createdUser);
+        return ResponseEntity.ok(repository.save(userModel));
     }
 }
